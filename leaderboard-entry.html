@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Acnes – Join the Leaderboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100dvh;
+            background: radial-gradient(ellipse at 50% 10%, #d8f09a 0%, #96c050 50%, #5a8e28 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 40px 20px 40px;
+            gap: 0;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Bottom glow */
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -80px; left: 50%;
+            transform: translateX(-50%);
+            width: 260px; height: 260px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,220,0.55) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ── Logo ─────────────────────────────────────────────────────────── */
+        .logo-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 28px;
+        }
+
+        .logo-wordmark {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.1;
+        }
+
+        .logo-wordmark .sm { font-size: 11px; font-style: italic; color: #004d40; letter-spacing: 0.5px; }
+        .logo-wordmark .lg { font-size: 40px; font-weight: 700; font-style: italic; color: #004d40; letter-spacing: -1px; }
+
+        .logo-dots {
+            display: flex;
+            gap: 6px;
+        }
+        .logo-dots span { display: block; width: 12px; height: 12px; border-radius: 50%; }
+        .d1 { background: #8b1a1a; }
+        .d2 { background: #c0392b; }
+        .d3 { background: #e07070; }
+        .d4 { background: #eeaaaa; }
+        .d5 { background: #f5cece; }
+        .d6 { background: #d8d8d8; }
+
+        /* ── Card ─────────────────────────────────────────────────────────── */
+        .card {
+            background: rgba(255,255,255,0.88);
+            border-radius: 24px;
+            padding: 32px 28px 28px;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #004d40;
+            text-align: center;
+        }
+
+        .card-sub {
+            font-size: 14px;
+            color: #004d40;
+            text-align: center;
+            line-height: 1.5;
+            margin-top: -8px;
+        }
+
+        .score-badge {
+            background: #004d40;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 6px 20px;
+            border-radius: 40px;
+        }
+
+        /* ── Form ─────────────────────────────────────────────────────────── */
+        .field {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #004d40;
+            letter-spacing: 0.5px;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 40px;
+            border: 2px solid rgba(0,77,64,0.15);
+            background: #fff;
+            font-size: 15px;
+            font-family: 'Montserrat', sans-serif;
+            color: #333;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .field input::placeholder { color: #aaa; }
+        .field input:focus { border-color: #004d40; }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: #004d40;
+            color: #fff;
+            border: none;
+            border-radius: 40px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: 'Montserrat', sans-serif;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-submit:hover  { background: #00695c; }
+        .btn-submit:active { transform: scale(0.98); }
+        .btn-submit:disabled { background: #aaa; cursor: default; }
+
+        /* ── Success state ────────────────────────────────────────────────── */
+        .success-msg {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            text-align: center;
+        }
+        .success-msg.visible { display: flex; }
+        .success-icon { font-size: 48px; line-height: 1; }
+        .success-title { font-size: 22px; font-weight: 700; color: #004d40; }
+        .success-sub   { font-size: 14px; color: #555; }
+
+        .form-area { width: 100%; display: flex; flex-direction: column; gap: 18px; }
+        .form-area.hidden { display: none; }
+
+        /* ── Error ────────────────────────────────────────────────────────── */
+        .error-msg { font-size: 13px; color: #c0392b; text-align: center; display: none; }
+        .error-msg.visible { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="logo-wrap">
+    <div class="logo-wordmark">
+        <span class="sm">Mentholatum®</span>
+        <span class="lg">Acnes</span>
+    </div>
+    <div class="logo-dots">
+        <span class="d1"></span>
+        <span class="d2"></span>
+        <span class="d3"></span>
+        <span class="d4"></span>
+        <span class="d5"></span>
+        <span class="d6"></span>
+    </div>
+</div>
+
+<div class="card">
+
+    <div class="form-area" id="form-area">
+        <div class="card-title">Well Done!</div>
+        <div class="card-sub">Insert your name to view on leaderboard</div>
+        <div class="score-badge" id="score-badge">Score: 0</div>
+
+        <div class="field">
+            <label for="name-input">Name</label>
+            <input type="text" id="name-input" placeholder="Insert your name" maxlength="50" autocomplete="off">
+        </div>
+
+        <p class="error-msg" id="error-msg">Please enter your name before submitting.</p>
+
+        <button class="btn-submit" id="btn-submit">SUBMIT</button>
+    </div>
+
+    <div class="success-msg" id="success-msg">
+        <div class="success-icon">🎉</div>
+        <div class="success-title">You're on the board!</div>
+        <div class="success-sub">Thanks for playing. Check the leaderboard to see your rank.</div>
+    </div>
+
+</div>
+
+<script>
+    // Read score from URL
+    const params    = new URLSearchParams(window.location.search);
+    const score     = Math.max(0, parseInt(params.get('score') || '0', 10));
+    document.getElementById('score-badge').textContent = 'Score: ' + score;
+
+    const nameInput = document.getElementById('name-input');
+    const btnSubmit = document.getElementById('btn-submit');
+    const errorMsg  = document.getElementById('error-msg');
+    const formArea  = document.getElementById('form-area');
+    const successMsg = document.getElementById('success-msg');
+
+    nameInput.addEventListener('input', () => {
+        errorMsg.classList.remove('visible');
+    });
+
+    btnSubmit.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
+        if (!name) {
+            errorMsg.classList.add('visible');
+            return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Saving…';
+        errorMsg.classList.remove('visible');
+
+        try {
+            const res = await fetch('leaderboard.php', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ name, score }),
+            });
+
+            if (!res.ok) throw new Error('Server error');
+
+            formArea.classList.add('hidden');
+            successMsg.classList.add('visible');
+        } catch {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'SUBMIT';
+            errorMsg.textContent = 'Could not save. Please try again.';
+            errorMsg.classList.add('visible');
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Glass Bubble Smash - Depth Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+        :root {
+            /* Fallback color in case the image doesn't load */
+            --primary-bg-color: #96c072; 
+            --ui-dark-green: #004d40;
+            --good-glow: rgba(255, 255, 255, 1);
+            --bad-glow: rgba(239, 68, 68, 0.8);
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; 
+            background-color: var(--primary-bg-color);
+            font-family: 'Montserrat', sans-serif; color: white;
+            cursor: default; 
+            transition: box-shadow 0.1s ease-out;
+        }
+
+        /* Edge Glow Effect (Flashes entire screen) */
+        body.game-active { cursor: none; }
+        body.game-active.hit-good #game-container { box-shadow: 0 0 80px rgba(0,0,0,0.5), inset 0 0 60px rgba(0,0,0,0.2), 0 0 0 6px rgba(255,255,255,0.08), inset 0 0 100px var(--good-glow); }
+        body.game-active.hit-bad #game-container  { box-shadow: 0 0 80px rgba(0,0,0,0.5), inset 0 0 60px rgba(0,0,0,0.2), 0 0 0 6px rgba(255,255,255,0.08), inset 0 0 100px var(--bad-glow); }
+
+        /* --- UI Layer (inside circle) --- */
+        #ui-layer {
+            display: none;
+            position: absolute; top: 22px; left: 50%;
+            transform: translateX(-50%); gap: 12px;
+            z-index: 100; pointer-events: none; white-space: nowrap;
+        }
+
+        .stat-box {
+            background: var(--ui-dark-green); padding: 6px 18px;
+            border-radius: 40px; display: flex; align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.9; }
+        .stat-value { font-size: 22px; font-weight: 700; color: #fff; }
+
+        /* --- Image Bubbles --- */
+        .bubble {
+            position: absolute;
+            display: flex; align-items: center; justify-content: center;
+            user-select: none; pointer-events: none;
+            transition: transform 0.1s linear;
+            z-index: 10;
+        }
+        .bubble img {
+            width: 100%; height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* --- Slice Trail Canvas --- */
+        #slice-canvas {
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+            pointer-events: none;
+            border-radius: 50%;
+        }
+
+        /* --- In-Circle Step Overlay --- */
+        #game-overlay {
+            position: absolute; inset: 0; display: flex;
+            align-items: center; justify-content: center;
+            z-index: 200; border-radius: 50%; overflow: hidden;
+            background: transparent;
+        }
+
+        .step {
+            display: none; flex-direction: column;
+            align-items: center; justify-content: flex-end;
+            text-align: center; width: 100%; height: 100%;
+            padding-bottom: 12%; box-sizing: border-box;
+        }
+        .step.active { display: flex; }
+
+        .step-btn {
+            padding: 12px 44px; font-size: clamp(14px, 2.8vmin, 22px);
+            font-weight: 700; background: var(--ui-dark-green); color: white;
+            border: 2px solid rgba(255,255,255,0.3); border-radius: 60px;
+            cursor: pointer; font-family: 'Montserrat', sans-serif;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            transition: 0.2s; text-transform: uppercase; letter-spacing: 2px;
+            position: relative;
+        }
+        .step-btn:hover { background: #00695c; transform: scale(1.05); }
+
+        /* --- Congrats Step --- */
+        #step-congrats { justify-content: center; padding-bottom: 0; }
+
+        .congrats-inner {
+            position: relative;
+            width: 100%; height: 100%;
+        }
+
+        #qr-code {
+            position: absolute;
+            left: 50%;
+            top: 62%;
+            transform: translate(-50%, -50%);
+        }
+
+        #qr-code canvas, #qr-code img { display: block; }
+
+        /* --- Try Again Step --- */
+        #step-tryagain { justify-content: center; padding-bottom: 0; }
+
+        .tryagain-inner {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; width: 100%; height: 100%;
+            padding: 6% 10%; box-sizing: border-box;
+            gap: clamp(10px, 2vmin, 18px);
+        }
+
+        .tryagain-emoji {
+            font-size: clamp(36px, 8vmin, 60px); line-height: 1;
+        }
+
+        .tryagain-title {
+            font-size: clamp(14px, 3vmin, 22px); font-weight: 700;
+            color: #004d40; text-align: center; line-height: 1.35; margin: 0;
+        }
+
+        .tryagain-sub {
+            font-size: clamp(10px, 1.8vmin, 14px); color: #2d6a4f;
+            text-align: center; line-height: 1.5; margin: 0;
+        }
+
+        /* --- Leaderboard Step --- */
+        #step-leaderboard { justify-content: center; padding-bottom: 0; }
+
+        .lb-inner {
+            display: flex; flex-direction: column; align-items: center;
+            width: 100%; height: 100%;
+            padding: 10% 18% 8%; box-sizing: border-box;
+            gap: clamp(5px, 0.9vmin, 9px);
+        }
+
+        .lb-title {
+            font-size: clamp(14px, 3vmin, 22px); font-weight: 700;
+            color: #004d40; flex-shrink: 0;
+        }
+
+        .lb-card {
+            width: 100%; flex: 1; min-height: 0;
+            background: transparent;
+            padding: clamp(5px, 0.8vmin, 8px) 0;
+            display: flex; flex-direction: column;
+            gap: clamp(3px, 0.6vmin, 6px);
+            overflow-y: auto;
+        }
+
+        .lb-row {
+            display: flex; align-items: center; flex-shrink: 0;
+            background: #004d40; border-radius: 40px;
+            padding: clamp(4px, 0.8vmin, 7px) clamp(7px, 1.1vmin, 11px);
+            gap: clamp(6px, 1vmin, 10px);
+        }
+
+        .lb-rank {
+            flex-shrink: 0;
+            width: clamp(20px, 3.4vmin, 27px); height: clamp(20px, 3.4vmin, 27px);
+            border-radius: 50%;
+            background: rgba(255,255,255,0.18);
+            display: flex; align-items: center; justify-content: center;
+            font-size: clamp(9px, 1.5vmin, 13px); font-weight: 700; color: #fff;
+        }
+        .lb-rank.gold   { background: #f5c518; color: #333; }
+        .lb-rank.silver { background: #b8b8b8; color: #333; }
+        .lb-rank.bronze { background: #cd7f32; color: #fff; }
+
+        .lb-name {
+            flex: 1; font-size: clamp(9px, 1.6vmin, 13px); font-weight: 600;
+            color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            text-align: left;
+        }
+
+        .lb-score {
+            flex-shrink: 0; font-size: clamp(9px, 1.6vmin, 13px);
+            font-weight: 700; color: #a8e6b8; min-width: clamp(22px, 3.2vmin, 32px);
+            text-align: right;
+        }
+
+        .lb-list {
+            display: flex; flex-direction: column;
+            gap: clamp(3px, 0.6vmin, 6px);
+        }
+
+        .step-btn::after {
+            content: ''; position: absolute; inset: 0; border-radius: 60px;
+            background: conic-gradient(rgba(255,255,255,0.28) var(--hover-deg, 0deg), transparent var(--hover-deg, 0deg));
+            pointer-events: none; opacity: 0; transition: opacity 0.15s;
+        }
+        .step-btn.hovering::after { opacity: 1; }
+
+        .guide-text {
+            font-size: clamp(12px, 2vmin, 17px); line-height: 1.6;
+            color: white; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+            margin-bottom: 22px; max-width: 78%;
+            background: rgba(0,0,0,0.45); padding: 14px 18px;
+            border-radius: 14px; backdrop-filter: blur(6px);
+        }
+
+        /* Countdown step – centred vertically */
+        #step-countdown { justify-content: center; padding-bottom: 0; }
+
+        #countdown-number {
+            font-size: clamp(90px, 20vmin, 170px); font-weight: 700;
+            color: white; text-shadow: 0 4px 24px rgba(0,0,0,0.6);
+        }
+        #countdown-number.pop {
+            animation: countPop 0.7s ease-out forwards;
+        }
+        @keyframes countPop {
+            0%   { transform: scale(1.6); opacity: 0; }
+            60%  { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Bottle absorb flash */
+        @keyframes bottleFlash {
+            0%   { transform: translate(-50%,-50%) scale(0.3); opacity: 1; }
+            60%  { transform: translate(-50%,-50%) scale(1.6); opacity: 0.7; }
+            100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
+        }
+        .bottle-flash {
+            position: absolute; border-radius: 50%; pointer-events: none; z-index: 70;
+            width: 36px; height: 36px;
+            background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(100,220,120,0.6) 60%, transparent 100%);
+            animation: bottleFlash 0.45s ease-out forwards;
+        }
+        #game-container {
+            position: fixed;
+            width: min(85vw, 85vh);
+            height: min(85vw, 85vh);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            overflow: hidden;
+            z-index: 10;
+            border: 3px solid rgba(255,255,255,0.35);
+            box-shadow: 0 0 80px rgba(0,0,0,0.5), inset 0 0 60px rgba(0,0,0,0.2), 0 0 0 6px rgba(255,255,255,0.08);
+            background-image: url('assets/bg.webp');
+            background-size: cover;
+            background-position: center;
+            transition: box-shadow 0.1s ease-out;
+        }
+
+        /* Phase background layer */
+        #phase-bg {
+            position: absolute; inset: 0; z-index: 0;
+            background-size: cover;
+            background-position: center;
+            background-image: url('assets/start.png');
+            border-radius: 50%;
+        }
+
+        /* --- Bottle overlay --- */
+        #bottle-img {
+            display: none;
+            position: absolute;
+            width: 28%;
+            bottom: -3%;
+            right: -2%;
+            z-index: 20;
+            pointer-events: none;
+            filter: drop-shadow(0 6px 18px rgba(0,0,0,0.25));
+        }
+
+    </style>
+    <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="phase-bg"></div>
+    <div id="game-overlay">
+        <!-- Step 1: Start -->
+        <div id="step-start" class="step active">
+            <button class="step-btn" id="start-btn">START</button>
+        </div>
+        <!-- Step 2: Guide -->
+        <div id="step-guide" class="step">
+            <button class="step-btn" id="continue-btn">CONTINUE</button>
+        </div>
+        <!-- Step 3: Countdown -->
+        <div id="step-countdown" class="step">
+            <div id="countdown-number">3</div>
+        </div>
+        <!-- Step 4: Congrats -->
+        <div id="step-congrats" class="step">
+            <div class="congrats-inner">
+                <div id="qr-code"></div>
+            </div>
+        </div>
+        <!-- Step 4b: Try Again -->
+        <div id="step-tryagain" class="step">
+            <div class="tryagain-inner">
+                <div class="tryagain-emoji">😓</div>
+                <p class="tryagain-title">Better luck<br>next time!</p>
+                <p class="tryagain-sub">You need to score points<br>to join the leaderboard.</p>
+                <button class="step-btn" id="tryagain-btn">TRY AGAIN</button>
+            </div>
+        </div>
+        <!-- Step 5: Leaderboard -->
+        <div id="step-leaderboard" class="step">
+            <div class="lb-inner">
+                <div class="lb-title">Leaderboard</div>
+                <div class="lb-card">
+                    <div class="lb-list" id="lb-list"></div>
+                </div>
+                <button class="step-btn" id="finish-btn">FINISH</button>
+            </div>
+        </div>
+    </div>
+    <canvas id="slice-canvas"></canvas>
+    <img id="bottle-img" src="assets/bottle.webp" alt="bottle">
+    <div id="ui-layer">
+        <div class="stat-box">
+            <span class="stat-label">Time:</span>
+            <span class="stat-value" id="timer">20</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-label">Total:</span>
+            <span class="stat-value" id="score">0</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    const gameContainer = document.getElementById('game-container');
+    const scoreEl       = document.getElementById('score');
+    const timerEl       = document.getElementById('timer');
+    const gameOverlay   = document.getElementById('game-overlay');
+    const stepStart     = document.getElementById('step-start');
+    const stepGuide     = document.getElementById('step-guide');
+    const stepCountdown = document.getElementById('step-countdown');
+    const sliceCanvas   = document.getElementById('slice-canvas');
+    const ctx           = sliceCanvas.getContext('2d');
+
+    let score = 0, timeRemaining = 20, gameActive = false, bubbles = [];
+    let CANVAS_SIZE = 0, CANVAS_RADIUS = 0;
+
+    // ── Remote canvas control ────────────────────────────────────────────────
+    let canvasOffsetX = 0, canvasOffsetY = 0, canvasSize = 85;
+    const STEP_PX = 20, STEP_SIZE = 5;
+
+    function applyCanvasTransform() {
+        gameContainer.style.width  = `min(${canvasSize}vw, ${canvasSize}vh)`;
+        gameContainer.style.height = `min(${canvasSize}vw, ${canvasSize}vh)`;
+        gameContainer.style.left   = `calc(50% + ${canvasOffsetX}px)`;
+        gameContainer.style.top    = `calc(50% + ${canvasOffsetY}px)`;
+        requestAnimationFrame(() => {
+            const sz = gameContainer.offsetWidth;
+            CANVAS_SIZE = sz; CANVAS_RADIUS = sz / 2;
+            sliceCanvas.width = sz; sliceCanvas.height = sz;
+        });
+    }
+
+    function applyAction(action) {
+        switch (action) {
+            case 'up':      canvasOffsetY -= STEP_PX; break;
+            case 'down':    canvasOffsetY += STEP_PX; break;
+            case 'left':    canvasOffsetX -= STEP_PX; break;
+            case 'right':   canvasOffsetX += STEP_PX; break;
+            case 'bigger':  canvasSize = Math.min(canvasSize + STEP_SIZE, 95); break;
+            case 'smaller': canvasSize = Math.max(canvasSize - STEP_SIZE, 20); break;
+            case 'reset':   canvasOffsetX = 0; canvasOffsetY = 0; canvasSize = 85; break;
+        }
+        applyCanvasTransform();
+    }
+
+    async function initPusher() {
+        try {
+            const cfg = await fetch('config.php').then(r => r.json());
+            Pusher.logToConsole = false;
+            const pusher  = new Pusher(cfg.key, { cluster: cfg.cluster });
+            const channel = pusher.subscribe('game-control');
+            channel.bind('canvas-move', (data) => applyAction(data.action));
+            channel.bind('player-joined', (data) => {
+                if (document.getElementById('step-congrats').classList.contains('active')) {
+                    showLeaderboard(data.entries || []);
+                }
+            });
+        } catch (e) { /* server not running, ignore */ }
+    }
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // ── Trail ────────────────────────────────────────────────────────────────
+    const trailPts   = [];   // { x, y, t, color }
+    let trailColor   = '#ffffff';
+    const TRAIL_MS   = 500;
+    let sliceResetId = null;
+
+    // ── Sound ────────────────────────────────────────────────────────────────
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'good') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        } else if (type === 'hover') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(660, audioCtx.currentTime + 0.06);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        } else if (type === 'countdown') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+        } else if (type === 'go') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1047, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 0.25);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        }
+        osc.start(); osc.stop(audioCtx.currentTime + 0.35);
+    }
+
+    // ── Input ────────────────────────────────────────────────────────────────
+    function handleMove(relX, relY) {
+        trailPts.push({ x: relX, y: relY, t: Date.now(), color: trailColor });
+        if (gameActive) checkSlice(relX, relY);
+    }
+
+    document.addEventListener('mousemove', (e) => {
+        const rect = gameContainer.getBoundingClientRect();
+        handleMove(e.clientX - rect.left, e.clientY - rect.top);
+    });
+
+    gameContainer.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const t = e.touches[0];
+        const rect = gameContainer.getBoundingClientRect();
+        handleMove(t.clientX - rect.left, t.clientY - rect.top);
+    }, { passive: false });
+
+    // ── Slice detection ──────────────────────────────────────────────────────
+    function checkSlice(x, y) {
+        for (let i = bubbles.length - 1; i >= 0; i--) {
+            const b = bubbles[i];
+            const dx = x - (b.x + b.size / 2);
+            const dy = y - (b.y + b.size / 2);
+            if (Math.sqrt(dx * dx + dy * dy) < b.size / 2) {
+                if (b.isGood) { score += 100; triggerSlice('good'); }
+                else          { score = Math.max(0, score - 50); triggerSlice('bad'); }
+                pop(i);
+                break;
+            }
+        }
+    }
+
+    function triggerSlice(type) {
+        playSound(type);
+        trailColor = type === 'good' ? '#22c55e' : '#ef4444';
+        document.body.classList.remove('hit-good', 'hit-bad');
+        document.body.classList.add(type === 'good' ? 'hit-good' : 'hit-bad');
+        clearTimeout(sliceResetId);
+        sliceResetId = setTimeout(() => {
+            trailColor = '#ffffff';
+            document.body.classList.remove('hit-good', 'hit-bad');
+        }, 400);
+    }
+
+    // ── Fly-to-bottle animation ────────────────────────────────────────────
+    function flyToBottle(fromX, fromY) {
+        const DURATION = 1000; // ms
+        const start    = performance.now();
+
+        // Dropper tip: bottle is bottom-right, tip is near top of the bottle image
+        // bottle right:-4% width:42% → tip ~x=83%, y=58% of circle
+        const toX = CANVAS_SIZE * 0.83;
+        const toY = CANVAS_SIZE * 0.58;
+
+        // Control point for the arc (curves upward slightly)
+        const cpX = (fromX + toX) / 2 + (toY - fromY) * 0.3;
+        const cpY = (fromY + toY) / 2 - Math.abs(toX - fromX) * 0.35;
+
+        const orb = document.createElement('div');
+        orb.style.cssText = `position:absolute;width:70px;height:70px;border-radius:50%;
+            background:radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(80,220,120,0.9) 50%, rgba(40,180,80,0.6) 100%);
+            box-shadow:0 0 30px 12px rgba(100,255,140,0.85), 0 0 60px 20px rgba(60,200,100,0.4);
+            pointer-events:none;z-index:65;
+            left:${fromX}px;top:${fromY}px;
+            transform:translate(-50%,-50%) scale(1)`;
+        gameContainer.appendChild(orb);
+
+        function step(now) {
+            const t  = Math.min((now - start) / DURATION, 1);
+            const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // ease-in-out
+            // Quadratic bezier
+            const x = (1-ease)*(1-ease)*fromX + 2*(1-ease)*ease*cpX + ease*ease*toX;
+            const y = (1-ease)*(1-ease)*fromY + 2*(1-ease)*ease*cpY + ease*ease*toY;
+            const scale = 1 - ease * 0.7; // shrink as it enters bottle
+            orb.style.left = x + 'px';
+            orb.style.top  = y + 'px';
+            orb.style.transform = `translate(-50%,-50%) scale(${scale})`;
+            orb.style.opacity = (1 - ease * 0.4).toString();
+            if (t < 1) {
+                requestAnimationFrame(step);
+            } else {
+                orb.remove();
+                // Flash at bottle mouth
+                const flash = document.createElement('div');
+                flash.className = 'bottle-flash';
+                flash.style.left = toX + 'px';
+                flash.style.top  = toY + 'px';
+                gameContainer.appendChild(flash);
+                setTimeout(() => flash.remove(), 500);
+            }
+        }
+        requestAnimationFrame(step);
+    }
+
+    // ── Burst particles on slice ──────────────────────────────────────────────
+    function spawnParticles(cx, cy, size, isGood) {
+        const color = isGood ? '#22c55e' : '#ef4444';
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const reach = size * 0.55;
+            const p = document.createElement('div');
+            p.style.cssText = `position:absolute;width:7px;height:7px;border-radius:50%;
+                background:${color};opacity:1;pointer-events:none;z-index:60;
+                left:${cx - 3}px;top:${cy - 3}px;
+                transition:transform .4s ease-out,opacity .4s ease-out;`;
+            gameContainer.appendChild(p);
+            requestAnimationFrame(() => {
+                p.style.transform = `translate(${Math.cos(angle)*reach}px,${Math.sin(angle)*reach}px)`;
+                p.style.opacity = '0';
+            });
+            setTimeout(() => p.remove(), 450);
+        }
+    }
+
+    function pop(index) {
+        const b = bubbles[index];
+        const cx = b.x + b.size / 2;
+        const cy = b.y + b.size / 2;
+        spawnParticles(cx, cy, b.size, b.isGood);
+        if (b.isGood) flyToBottle(cx, cy);
+        b.el.remove();
+        bubbles.splice(index, 1);
+        scoreEl.innerText = score;
+        if (bubbles.length < 20) spawn();
+    }
+
+    // ── Spawn ─────────────────────────────────────────────────────────────────
+    const goodImgs = [
+        'assets/good element (1) 1_2x.webp',
+        'assets/good element (2) 1_2x.webp',
+        'assets/good element (3) 1_2x.webp',
+        'assets/good element (4) 1_2x.webp'
+    ];
+    const badImgs = [
+        'assets/bad element (1) 1_2x.webp',
+        'assets/bad element (2) 1_2x.webp',
+        'assets/bad element (3) 1_2x.webp',
+        'assets/bad element (4) 1_2x.webp'
+    ];
+
+    function spawn() {
+        const isGood = Math.random() < 0.60;
+        const size   = Math.floor(Math.random() * 36) + 90;
+        const el     = document.createElement('div');
+        el.className = `bubble ${isGood ? 'good' : 'bad'}`;
+        el.style.width = el.style.height = size + 'px';
+        const pool = isGood ? goodImgs : badImgs;
+        const img  = document.createElement('img');
+        img.src = pool[Math.floor(Math.random() * pool.length)];
+        img.draggable = false;
+        el.appendChild(img);
+        gameContainer.appendChild(el);
+        const angle = Math.random() * Math.PI * 2;
+        const r     = Math.random() * (CANVAS_RADIUS - size / 2);
+        const x     = CANVAS_RADIUS + r * Math.cos(angle) - size / 2;
+        const y     = CANVAS_RADIUS + r * Math.sin(angle) - size / 2;
+        bubbles.push({ el, size, isGood, x, y,
+            vx: (Math.random() - 0.5) * 5.5,
+            vy: (Math.random() - 0.5) * 5.5 });
+    }
+
+    // ── Trail render loop ─────────────────────────────────────────────────────
+    function renderTrail() {
+        const now = Date.now();
+        while (trailPts.length && now - trailPts[0].t > TRAIL_MS) trailPts.shift();
+        ctx.clearRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        for (let i = 1; i < trailPts.length; i++) {
+            const p0 = trailPts[i - 1], p1 = trailPts[i];
+            const frac  = (now - p1.t) / TRAIL_MS;     // 0 = fresh, 1 = old
+            const alpha = (1 - frac) * 0.9;
+            const width = (1 - frac) * 10 + 1;
+            ctx.beginPath();
+            ctx.moveTo(p0.x, p0.y);
+            ctx.lineTo(p1.x, p1.y);
+            ctx.strokeStyle  = p1.color;
+            ctx.globalAlpha  = alpha;
+            ctx.lineWidth    = width;
+            ctx.lineCap      = 'round';
+            ctx.lineJoin     = 'round';
+            ctx.shadowColor  = p1.color;
+            ctx.shadowBlur   = 14;
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur  = 0;
+        requestAnimationFrame(renderTrail);
+    }
+
+    // ── Physics loop ──────────────────────────────────────────────────────────
+    function loop() {
+        if (!gameActive) return;
+        bubbles.forEach(b => {
+            b.x += b.vx; b.y += b.vy;
+            const cx   = b.x + b.size / 2 - CANVAS_RADIUS;
+            const cy   = b.y + b.size / 2 - CANVAS_RADIUS;
+            const dist = Math.sqrt(cx * cx + cy * cy);
+            if (dist > 0 && dist + b.size / 2 >= CANVAS_RADIUS) {
+                const nx = cx / dist, ny = cy / dist;
+                const dot = b.vx * nx + b.vy * ny;
+                b.vx -= 2 * dot * nx;
+                b.vy -= 2 * dot * ny;
+                const overlap = dist + b.size / 2 - CANVAS_RADIUS;
+                b.x -= nx * overlap;
+                b.y -= ny * overlap;
+            }
+            b.el.style.transform = `translate3d(${b.x}px,${b.y}px,0)`;
+        });
+        requestAnimationFrame(loop);
+    }
+
+    // ── Start ─────────────────────────────────────────────────────────────────
+    function startGame() {
+        score = 0; timeRemaining = 20; gameActive = true;
+        scoreEl.innerText = '0'; timerEl.innerText = '20';
+        gameOverlay.style.display = 'none';
+        document.getElementById('ui-layer').style.display = 'flex';
+        document.getElementById('bottle-img').style.display = 'block';
+        document.getElementById('phase-bg').style.display = 'none';
+        document.body.classList.add('game-active');
+        gameContainer.style.backgroundImage = "url('assets/bg.webp')";
+        gameContainer.querySelectorAll('.bubble').forEach(el => el.remove());
+        bubbles = []; trailPts.length = 0; trailColor = '#ffffff';
+        document.body.classList.remove('hit-good', 'hit-bad');
+        CANVAS_SIZE   = gameContainer.offsetWidth;
+        CANVAS_RADIUS = CANVAS_SIZE / 2;
+        sliceCanvas.width  = CANVAS_SIZE;
+        sliceCanvas.height = CANVAS_SIZE;
+        for (let i = 0; i < 20; i++) spawn();
+        loop();
+        const timer = setInterval(() => {
+            timeRemaining--; timerEl.innerText = timeRemaining;
+            if (timeRemaining <= 0) {
+                clearInterval(timer); gameActive = false;
+                showCongrats(score);
+            }
+        }, 1000);
+    }
+
+    function addHoverTrigger(el, callback, duration = 3000) {
+        let startTime = null, rafId = null;
+        function tick(now) {
+            const deg = Math.min((now - startTime) / duration, 1) * 360;
+            el.style.setProperty('--hover-deg', deg + 'deg');
+            if (deg >= 360) { cancel(); playSound('hover'); callback(); }
+            else { rafId = requestAnimationFrame(tick); }
+        }
+        function cancel() {
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null; startTime = null;
+            el.style.setProperty('--hover-deg', '0deg');
+            el.classList.remove('hovering');
+        }
+        el.addEventListener('mouseenter', () => {
+            startTime = performance.now();
+            el.classList.add('hovering');
+            rafId = requestAnimationFrame(tick);
+        });
+        el.addEventListener('mouseleave', cancel);
+    }
+
+    addHoverTrigger(document.getElementById('start-btn'), () => {
+        audioCtx.resume();
+        const phaseBg = document.getElementById('phase-bg');
+        phaseBg.style.backgroundImage = "url('assets/guide.png')";
+        void phaseBg.offsetWidth; // force immediate repaint
+        stepStart.classList.remove('active');
+        stepGuide.classList.add('active');
+    });
+
+    addHoverTrigger(document.getElementById('continue-btn'), () => {
+        stepGuide.classList.remove('active');
+        stepCountdown.classList.add('active');
+        const phaseBg = document.getElementById('phase-bg');
+        phaseBg.style.backgroundImage = "url('assets/bg.webp')";
+        const countEl = document.getElementById('countdown-number');
+        let count = 3;
+        function popCount(val) {
+            countEl.innerText = val;
+            countEl.classList.remove('pop');
+            void countEl.offsetWidth; // force reflow to restart animation
+            countEl.classList.add('pop');
+        }
+        playSound('countdown');
+        popCount(count);
+        const cdInterval = setInterval(() => {
+            count--;
+            if (count > 0) {
+                playSound('countdown');
+                popCount(count);
+            } else {
+                clearInterval(cdInterval);
+                playSound('go');
+                popCount('GO!');
+                setTimeout(startGame, 700);
+            }
+        }, 1000);
+    });
+
+    addHoverTrigger(document.getElementById('tryagain-btn'), () => {
+        document.getElementById('step-tryagain').classList.remove('active');
+        const phaseBg = document.getElementById('phase-bg');
+        phaseBg.style.background = '';
+        phaseBg.style.backgroundImage = "url('assets/start.png')";
+        stepStart.classList.add('active');
+    });
+
+    async function showCongrats(finalScore) {
+        gameContainer.querySelectorAll('.bubble').forEach(el => el.remove());
+        bubbles = []; trailPts.length = 0;
+        document.getElementById('ui-layer').style.display = 'none';
+        document.getElementById('bottle-img').style.display = 'none';
+        document.body.classList.remove('game-active', 'hit-good', 'hit-bad');
+
+        const phaseBg = document.getElementById('phase-bg');
+        phaseBg.style.display = '';
+        phaseBg.style.background = '';
+        phaseBg.style.backgroundImage = "url('assets/congrats.png')";
+        gameContainer.style.backgroundImage = '';
+
+        stepStart.classList.remove('active');
+        stepGuide.classList.remove('active');
+        stepCountdown.classList.remove('active');
+        document.getElementById('step-leaderboard').classList.remove('active');
+        document.getElementById('step-congrats').classList.remove('active');
+        document.getElementById('step-tryagain').classList.remove('active');
+        gameOverlay.style.display = 'flex';
+
+        // Check if score qualifies for top 10
+        let qualifies = false;
+        try {
+            const entries = await fetch('leaderboard.php').then(r => r.json());
+            qualifies = finalScore > 0 && (entries.length < 10 || finalScore > entries[9].score);
+        } catch {
+            // If fetch fails, qualify if score > 0 so player can still enter
+            qualifies = finalScore > 0;
+        }
+
+        if (!qualifies) {
+            document.getElementById('step-tryagain').classList.add('active');
+            return;
+        }
+
+        document.getElementById('step-congrats').classList.add('active');
+
+        // Build URL for QR
+        const base = window.location.href.replace(/\/[^/]*(\?.*)?$/, '/');
+        const entryUrl = base + 'leaderboard-entry.html?score=' + finalScore;
+
+        // Generate QR code
+        const qrEl = document.getElementById('qr-code');
+        qrEl.innerHTML = '';
+        const qrSize = Math.round(CANVAS_SIZE * 0.26);
+        new QRCode(qrEl, {
+            text: entryUrl,
+            width:  Math.max(90, qrSize),
+            height: Math.max(90, qrSize),
+            colorDark:  '#004d40',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M,
+        });
+    }
+
+    // ── Leaderboard phase ─────────────────────────────────────────────────────
+    function showLeaderboard(entries) {
+        const medals = ['🥇', '🥈', '🥉'];
+        const medalClass = ['gold', 'silver', 'bronze'];
+
+        const list = document.getElementById('lb-list');
+        list.innerHTML = '';
+        entries.forEach((e, i) => {
+            const row  = document.createElement('div');
+            row.className = 'lb-row';
+            const rank = document.createElement('div');
+            rank.className = 'lb-rank' + (i < 3 ? ' ' + medalClass[i] : '');
+            rank.textContent = i < 3 ? medals[i] : (i + 1);
+            const name = document.createElement('div');
+            name.className = 'lb-name';
+            name.textContent = e.name;
+            const sc = document.createElement('div');
+            sc.className = 'lb-score';
+            sc.textContent = e.score;
+            row.appendChild(rank); row.appendChild(name); row.appendChild(sc);
+            list.appendChild(row);
+        });
+
+        document.getElementById('step-congrats').classList.remove('active');
+        document.getElementById('step-leaderboard').classList.add('active');
+    }
+
+    addHoverTrigger(document.getElementById('finish-btn'), () => {
+        document.getElementById('step-leaderboard').classList.remove('active');
+        const phaseBg = document.getElementById('phase-bg');
+        phaseBg.style.background = '';
+        phaseBg.style.backgroundImage = "url('assets/start.png')";
+        stepStart.classList.add('active');
+    });
+
+    renderTrail();
+    initPusher();
+</script>
+</body>
+</html>

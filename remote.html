@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Game Remote Control</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #0a0a0f;
+            font-family: 'Montserrat', sans-serif;
+            color: #fff;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 36px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        h1 {
+            font-size: 13px;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+        }
+
+        /* ── Main controls row ────────────────────────────────────────── */
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 48px;
+        }
+
+        /* ── D-Pad ─────────────────────────────────────────────────────── */
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 72px);
+            grid-template-rows: repeat(3, 72px);
+            gap: 6px;
+        }
+
+        .dpad-center {
+            grid-column: 2; grid-row: 2;
+            background: rgba(255,255,255,0.03);
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.06);
+        }
+
+        /* ── Base button ──────────────────────────────────────────────── */
+        .btn {
+            width: 72px; height: 72px;
+            background: #16213e;
+            border: 2px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            color: #fff;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.1s, transform 0.08s, border-color 0.1s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+            outline: none;
+            position: relative;
+        }
+
+        .btn:focus-visible { border-color: rgba(255,255,255,0.3); }
+
+        .btn.pressed, .btn:active {
+            background: #004d40;
+            transform: scale(0.91);
+            border-color: rgba(255,255,255,0.25);
+            box-shadow: 0 0 20px rgba(0,200,150,0.3);
+        }
+
+        /* ── Size controls ────────────────────────────────────────────── */
+        .size-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .size-label {
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .btn-round {
+            width: 72px; height: 72px;
+            background: #16213e;
+            border: 2px solid rgba(255,255,255,0.08);
+            border-radius: 50%;
+            color: #fff;
+            font-size: 32px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.1s, transform 0.08s, border-color 0.1s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+            outline: none;
+            position: relative;
+        }
+
+        .btn-round.pressed, .btn-round:active {
+            background: #004d40;
+            transform: scale(0.91);
+            border-color: rgba(255,255,255,0.25);
+            box-shadow: 0 0 20px rgba(0,200,150,0.3);
+        }
+
+        /* ── Reset ────────────────────────────────────────────────────── */
+        .btn-reset {
+            padding: 14px 44px;
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.12);
+            border-radius: 40px;
+            color: rgba(255,255,255,0.45);
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            font-family: 'Montserrat', sans-serif;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
+            outline: none;
+            position: relative;
+        }
+        .btn-reset:hover { border-color: rgba(255,255,255,0.35); color: #fff; }
+        .btn-reset:active { background: rgba(255,255,255,0.06); }
+
+        /* ── Hover-to-trigger progress ring ──────────────────────────── */
+        .btn::after, .btn-round::after, .btn-reset::after {
+            content: ''; position: absolute; inset: 0; border-radius: inherit;
+            background: conic-gradient(rgba(255,255,255,0.25) var(--hover-deg, 0deg), transparent var(--hover-deg, 0deg));
+            pointer-events: none; opacity: 0; transition: opacity 0.15s;
+        }
+        .btn.hovering::after, .btn-round.hovering::after, .btn-reset.hovering::after { opacity: 1; }
+
+        /* ── Status indicator ─────────────────────────────────────────── */
+        .status-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #f59e0b;
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+        .dot.ok  { background: #22c55e; }
+        .dot.err { background: #ef4444; }
+    </style>
+</head>
+<body>
+
+<h1>Canvas Remote</h1>
+
+<div class="controls-row">
+
+    <!-- Size smaller/bigger -->
+    <div class="size-group">
+        <span class="size-label">Size</span>
+        <button class="btn-round" id="btn-bigger"  aria-label="Bigger">+</button>
+        <button class="btn-round" id="btn-smaller" aria-label="Smaller">−</button>
+    </div>
+
+    <!-- D-pad -->
+    <div class="dpad" aria-label="Move canvas">
+        <span></span>
+        <button class="btn" id="btn-up"    aria-label="Up">▲</button>
+        <span></span>
+        <button class="btn" id="btn-left"  aria-label="Left">◀</button>
+        <span class="dpad-center"></span>
+        <button class="btn" id="btn-right" aria-label="Right">▶</button>
+        <span></span>
+        <button class="btn" id="btn-down"  aria-label="Down">▼</button>
+        <span></span>
+    </div>
+
+</div>
+
+<button class="btn-reset" id="btn-reset">Reset Position &amp; Size</button>
+
+<div class="status-wrap">
+    <span class="dot" id="dot"></span>
+    <span id="status-text">Connecting…</span>
+</div>
+
+<script>
+    const dot        = document.getElementById('dot');
+    const statusText = document.getElementById('status-text');
+    let repeatTimer  = null;
+
+    function setStatus(type, msg) {
+        dot.className = 'dot ' + type;
+        statusText.textContent = msg;
+    }
+
+    async function send(action) {
+        try {
+            const res = await fetch('control.php', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ action }),
+            });
+            setStatus(res.ok ? 'ok' : 'err', res.ok ? action : 'Error ' + res.status);
+        } catch {
+            setStatus('err', 'Server offline');
+        }
+    }
+
+    function addHoverTrigger(el, callback, duration = 3000) {
+        let startTime = null, rafId = null;
+        function tick(now) {
+            const deg = Math.min((now - startTime) / duration, 1) * 360;
+            el.style.setProperty('--hover-deg', deg + 'deg');
+            if (deg >= 360) { cancel(); callback(); }
+            else { rafId = requestAnimationFrame(tick); }
+        }
+        function cancel() {
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null; startTime = null;
+            el.style.setProperty('--hover-deg', '0deg');
+            el.classList.remove('hovering');
+        }
+        el.addEventListener('mouseenter', () => {
+            startTime = performance.now();
+            el.classList.add('hovering');
+            rafId = requestAnimationFrame(tick);
+        });
+        el.addEventListener('mouseleave', cancel);
+    }
+
+    // Bind a button with hover-to-trigger behaviour
+    function bind(id, action) {
+        addHoverTrigger(document.getElementById(id), () => send(action));
+    }
+
+    bind('btn-up',      'up');
+    bind('btn-down',    'down');
+    bind('btn-left',    'left');
+    bind('btn-right',   'right');
+    bind('btn-bigger',  'bigger');
+    bind('btn-smaller', 'smaller');
+
+    addHoverTrigger(document.getElementById('btn-reset'), () => send('reset'));
+
+    // Check server on load
+    fetch('config.php')
+        .then(r => r.ok ? setStatus('ok', 'Connected') : setStatus('err', 'Server error'))
+        .catch(() => setStatus('err', 'Server offline'));
+</script>
+</body>
+</html>
