@@ -243,6 +243,19 @@
             background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(100,220,120,0.6) 60%, transparent 100%);
             animation: bottleFlash 0.45s ease-out forwards;
         }
+
+        /* Bottle shake on absorb */
+        @keyframes bottleShake {
+            0%   { transform: rotate(0deg) scale(1); }
+            20%  { transform: rotate(4deg) scale(1.04); }
+            40%  { transform: rotate(-3deg) scale(1.03); }
+            60%  { transform: rotate(2deg) scale(1.02); }
+            80%  { transform: rotate(-1deg) scale(1.01); }
+            100% { transform: rotate(0deg) scale(1); }
+        }
+        #bottle-img.shake {
+            animation: bottleShake 0.35s ease-out forwards;
+        }
         #game-container {
             position: fixed;
             width: min(85vw, 85vh);
@@ -536,6 +549,12 @@
                 flash.style.top  = toY + 'px';
                 gameContainer.appendChild(flash);
                 setTimeout(() => flash.remove(), 500);
+                // Shake bottle
+                const bottleEl = document.getElementById('bottle-img');
+                bottleEl.classList.remove('shake');
+                void bottleEl.offsetWidth;
+                bottleEl.classList.add('shake');
+                setTimeout(() => bottleEl.classList.remove('shake'), 400);
             }
         }
         requestAnimationFrame(step);
