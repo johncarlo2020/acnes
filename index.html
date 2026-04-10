@@ -834,6 +834,9 @@
 
         document.getElementById('step-congrats').classList.remove('active');
         document.getElementById('step-leaderboard').classList.add('active');
+        const phaseBg = document.getElementById('phase-bg');
+        phaseBg.style.background = '';
+        phaseBg.style.backgroundImage = "url('assets/bg.webp')";
     }
 
     addHoverTrigger(document.getElementById('finish-btn'), () => {
