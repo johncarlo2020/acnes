@@ -136,14 +136,6 @@
         .btn-reset:hover { border-color: rgba(255,255,255,0.35); color: #fff; }
         .btn-reset:active { background: rgba(255,255,255,0.06); }
 
-        /* ── Hover-to-trigger progress ring ──────────────────────────── */
-        .btn::after, .btn-round::after, .btn-reset::after {
-            content: ''; position: absolute; inset: 0; border-radius: inherit;
-            background: conic-gradient(rgba(255,255,255,0.25) var(--hover-deg, 0deg), transparent var(--hover-deg, 0deg));
-            pointer-events: none; opacity: 0; transition: opacity 0.15s;
-        }
-        .btn.hovering::after, .btn-round.hovering::after, .btn-reset.hovering::after { opacity: 1; }
-
         /* ── Status indicator ─────────────────────────────────────────── */
         .status-wrap {
             display: flex;
@@ -224,31 +216,8 @@
         }
     }
 
-    function addHoverTrigger(el, callback, duration = 3000) {
-        let startTime = null, rafId = null;
-        function tick(now) {
-            const deg = Math.min((now - startTime) / duration, 1) * 360;
-            el.style.setProperty('--hover-deg', deg + 'deg');
-            if (deg >= 360) { cancel(); callback(); }
-            else { rafId = requestAnimationFrame(tick); }
-        }
-        function cancel() {
-            if (rafId) cancelAnimationFrame(rafId);
-            rafId = null; startTime = null;
-            el.style.setProperty('--hover-deg', '0deg');
-            el.classList.remove('hovering');
-        }
-        el.addEventListener('mouseenter', () => {
-            startTime = performance.now();
-            el.classList.add('hovering');
-            rafId = requestAnimationFrame(tick);
-        });
-        el.addEventListener('mouseleave', cancel);
-    }
-
-    // Bind a button with hover-to-trigger behaviour
     function bind(id, action) {
-        addHoverTrigger(document.getElementById(id), () => send(action));
+        document.getElementById(id).addEventListener('click', () => send(action));
     }
 
     bind('btn-up',      'up');
@@ -258,7 +227,7 @@
     bind('btn-bigger',  'bigger');
     bind('btn-smaller', 'smaller');
 
-    addHoverTrigger(document.getElementById('btn-reset'), () => send('reset'));
+    document.getElementById('btn-reset').addEventListener('click', () => send('reset'));
 
     // Check server on load
     fetch('config.php')
