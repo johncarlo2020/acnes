@@ -72,7 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     $entries = json_decode(file_get_contents($file), true);
-    echo json_encode(is_array($entries) ? $entries : []);
+    $entries = is_array($entries) ? array_slice($entries, 0, 10) : [];
+    echo json_encode($entries);
 
 } else {
     http_response_code(405);

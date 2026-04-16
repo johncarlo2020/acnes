@@ -152,9 +152,11 @@
         }
 
         .tryagain-score-value {
-            font-size: clamp(32px, 7vmin, 58px); font-weight: 700;
+            font-weight: 700;
             color: #004d40; line-height: 1;
             text-shadow: 0 1px 4px rgba(255,255,255,0.5);
+            text-align: center;
+            font-size: clamp(14px, 4vmin, 38px);
         }
 
         /* Small YOUR SCORE bubble */
@@ -407,7 +409,7 @@
                         </div>
                     </div>
                 </div>
-                <button class="step-btn" id="tryagain-btn">RESTART</button>
+                <button class="step-btn" id="tryagain-btn">NEXT</button>
             </div>
         </div>
         <!-- Step 5: Leaderboard -->
@@ -894,12 +896,11 @@
         }, 1000);
     });
 
-    addHoverTrigger(document.getElementById('tryagain-btn'), () => {
+    addHoverTrigger(document.getElementById('tryagain-btn'), async () => {
         document.getElementById('step-tryagain').classList.remove('active');
-        const phaseBg = document.getElementById('phase-bg');
-        phaseBg.style.background = '';
-        phaseBg.style.backgroundImage = "url('assets/start.png')";
-        stepStart.classList.add('active');
+        let entries = [];
+        try { entries = await fetch('leaderboard.php').then(r => r.json()); } catch {}
+        showLeaderboard(entries);
     });
 
     async function showCongrats(finalScore) {
@@ -969,7 +970,7 @@
 
         const list = document.getElementById('lb-list');
         list.innerHTML = '';
-        entries.forEach((e, i) => {
+        entries.slice(0, 10).forEach((e, i) => {
             const row  = document.createElement('div');
             row.className = 'lb-row';
             const rank = document.createElement('div');
