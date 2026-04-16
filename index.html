@@ -25,7 +25,6 @@
         }
 
         /* Edge Glow Effect (Flashes entire screen) */
-        body.game-active { cursor: none; }
         body.game-active.hit-good #game-container { box-shadow: 0 0 80px rgba(0,0,0,0.5), inset 0 0 60px rgba(0,0,0,0.2), 0 0 0 6px rgba(255,255,255,0.08), inset 0 0 100px var(--good-glow); }
         body.game-active.hit-bad #game-container  { box-shadow: 0 0 80px rgba(0,0,0,0.5), inset 0 0 60px rgba(0,0,0,0.2), 0 0 0 6px rgba(255,255,255,0.08), inset 0 0 100px var(--bad-glow); }
 
@@ -117,27 +116,69 @@
         #qr-code canvas, #qr-code img { display: block; }
 
         /* --- Try Again Step --- */
-        #step-tryagain { justify-content: center; padding-bottom: 0; padding-top: 15%; }
+        #step-tryagain { justify-content: center; padding-bottom: 0; padding-top: 0; }
 
         .tryagain-inner {
-            display: flex; flex-direction: column; align-items: center;
+            display: flex; flex-direction: column; align-items: flex-start;
             justify-content: center; width: 100%; height: 100%;
-            padding: 6% 10%; box-sizing: border-box;
+            padding: 10% 7% 8% 17%; box-sizing: border-box;
             gap: clamp(10px, 2vmin, 18px);
         }
 
-        .tryagain-emoji {
-            font-size: clamp(36px, 8vmin, 60px); line-height: 1;
-        }
-
         .tryagain-title {
-            font-size: clamp(14px, 3vmin, 22px); font-weight: 700;
-            color: #004d40; text-align: center; line-height: 1.35; margin: 0;
+            font-size: clamp(18px, 4vmin, 30px); font-weight: 700;
+            color: #004d40; text-align: left; line-height: 1.25; margin: 0;
         }
 
-        .tryagain-sub {
-            font-size: clamp(10px, 1.8vmin, 14px); color: #2d6a4f;
-            text-align: center; line-height: 1.5; margin: 0;
+        .tryagain-score-row {
+            display: flex; align-items: center;
+            position: relative;
+        }
+
+        /* Large score bubble */
+        .tryagain-score-badge {
+            position: relative;
+            width: clamp(90px, 16vmin, 130px); height: clamp(90px, 16vmin, 130px);
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%,
+                rgba(255,255,255,0.95) 0%,
+                rgba(200,215,225,0.85) 35%,
+                rgba(160,185,205,0.75) 65%,
+                rgba(120,150,175,0.6) 100%);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.22),
+                        inset 0 2px 6px rgba(255,255,255,0.8),
+                        inset 0 -3px 8px rgba(100,140,170,0.35);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .tryagain-score-value {
+            font-size: clamp(32px, 7vmin, 58px); font-weight: 700;
+            color: #004d40; line-height: 1;
+            text-shadow: 0 1px 4px rgba(255,255,255,0.5);
+        }
+
+        /* Small YOUR SCORE bubble */
+        .tryagain-score-small {
+            position: absolute;
+            top: clamp(-10px, -1.5vmin, -8px);
+            left: clamp(-10px, -1.5vmin, -8px);
+            width: clamp(38px, 7vmin, 56px); height: clamp(38px, 7vmin, 56px);
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%,
+                rgba(255,255,255,0.95) 0%,
+                rgba(200,215,225,0.85) 40%,
+                rgba(160,185,205,0.75) 70%,
+                rgba(120,150,175,0.6) 100%);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2),
+                        inset 0 1px 4px rgba(255,255,255,0.8),
+                        inset 0 -2px 5px rgba(100,140,170,0.3);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .tryagain-score-label {
+            font-size: clamp(7px, 1.2vmin, 10px); font-weight: 700;
+            color: #004d40; text-transform: uppercase; letter-spacing: 0.3px;
+            line-height: 1.2; text-align: center;
         }
 
         /* --- Leaderboard Step --- */
@@ -244,6 +285,26 @@
             animation: bottleFlash 0.45s ease-out forwards;
         }
 
+        /* Floating score label on pop */
+        @keyframes scoreFloat {
+            0%   { transform: translate(-50%, 0)   scale(1.3); opacity: 1; }
+            70%  { transform: translate(-50%, -54px) scale(1);   opacity: 1; }
+            100% { transform: translate(-50%, -80px) scale(0.85); opacity: 0; }
+        }
+        .score-pop {
+            position: absolute;
+            pointer-events: none;
+            z-index: 80;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: clamp(18px, 3.5vmin, 28px);
+            white-space: nowrap;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.55);
+            animation: scoreFloat 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+        }
+        .score-pop.good { color: #4ade80; }
+        .score-pop.bad  { color: #f87171; }
+
         /* Bottle shake on absorb */
         @keyframes bottleShake {
             0%   { transform: rotate(0deg) scale(1); }
@@ -295,6 +356,19 @@
             filter: drop-shadow(0 6px 18px rgba(0,0,0,0.25));
         }
 
+        /* --- Fake cursor --- */
+        #game-container, #game-container * { cursor: none !important; }
+        #fake-cursor {
+            display: none;
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            object-fit: contain;
+        }
+
     </style>
     <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -325,10 +399,15 @@
         <!-- Step 4b: Try Again -->
         <div id="step-tryagain" class="step">
             <div class="tryagain-inner">
-                <div class="tryagain-emoji">😓</div>
-                <p class="tryagain-title">Better luck<br>next time!</p>
-                <p class="tryagain-sub">You need to score points<br>to join the leaderboard.</p>
-                <button class="step-btn" id="tryagain-btn">TRY AGAIN</button>
+                <div class="tryagain-score-row">
+                    <div class="tryagain-score-badge">
+                        <span class="tryagain-score-value" id="tryagain-score-display">0</span>
+                        <div class="tryagain-score-small">
+                            <span class="tryagain-score-label">Your<br>Score</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="step-btn" id="tryagain-btn">RESTART</button>
             </div>
         </div>
         <!-- Step 5: Leaderboard -->
@@ -343,6 +422,7 @@
         </div>
     </div>
     <canvas id="slice-canvas"></canvas>
+    <img id="fake-cursor" src="assets/cursor.webp" alt="">
     <img id="bottle-img" src="assets/bottle.webp" alt="bottle">
     <div id="ui-layer">
         <div class="stat-box">
@@ -459,10 +539,49 @@
         osc.start(); osc.stop(audioCtx.currentTime + 0.35);
     }
 
+    // ── Fake cursor ───────────────────────────────────────────────────────────
+    const fakeCursor = document.getElementById('fake-cursor');
+
+    function clampToCircle(relX, relY) {
+        const cx = relX - CANVAS_RADIUS;
+        const cy = relY - CANVAS_RADIUS;
+        const dist = Math.sqrt(cx * cx + cy * cy);
+        if (dist > CANVAS_RADIUS) {
+            return {
+                x: CANVAS_RADIUS + (cx / dist) * CANVAS_RADIUS,
+                y: CANVAS_RADIUS + (cy / dist) * CANVAS_RADIUS
+            };
+        }
+        return { x: relX, y: relY };
+    }
+
+    function updateFakeCursor(relX, relY) {
+        if (fakeCursor.style.display === 'none') return;
+        const r = gameContainer.offsetWidth / 2;
+        const cx = relX - r, cy = relY - r;
+        const dist = Math.sqrt(cx * cx + cy * cy);
+        let x = relX, y = relY;
+        if (r > 0 && dist > r) {
+            x = r + (cx / dist) * r;
+            y = r + (cy / dist) * r;
+        }
+        fakeCursor.style.left = x + 'px';
+        fakeCursor.style.top  = y + 'px';
+    }
+
+    gameContainer.addEventListener('mouseenter', () => {
+        fakeCursor.style.display = 'block';
+    });
+    gameContainer.addEventListener('mouseleave', () => {
+        fakeCursor.style.display = 'none';
+    });
+
     // ── Input ────────────────────────────────────────────────────────────────
     function handleMove(relX, relY) {
-        trailPts.push({ x: relX, y: relY, t: Date.now(), color: trailColor });
-        if (gameActive) checkSlice(relX, relY);
+        const clamped = CANVAS_RADIUS > 0 ? clampToCircle(relX, relY) : { x: relX, y: relY };
+        updateFakeCursor(relX, relY);
+        trailPts.push({ x: clamped.x, y: clamped.y, t: Date.now(), color: trailColor });
+        if (gameActive) checkSlice(clamped.x, clamped.y);
     }
 
     document.addEventListener('mousemove', (e) => {
@@ -580,11 +699,22 @@
         }
     }
 
+    function spawnScorePop(cx, cy, isGood) {
+        const label = document.createElement('div');
+        label.className = 'score-pop ' + (isGood ? 'good' : 'bad');
+        label.textContent = isGood ? '+100' : '-50';
+        label.style.left = cx + 'px';
+        label.style.top  = cy + 'px';
+        gameContainer.appendChild(label);
+        setTimeout(() => label.remove(), 780);
+    }
+
     function pop(index) {
         const b = bubbles[index];
         const cx = b.x + b.size / 2;
         const cy = b.y + b.size / 2;
         spawnParticles(cx, cy, b.size, b.isGood);
+        spawnScorePop(cx, cy, b.isGood);
         if (b.isGood) flyToBottle(cx, cy);
         b.el.remove();
         bubbles.splice(index, 1);
@@ -804,6 +934,10 @@
         }
 
         if (!qualifies) {
+            document.getElementById('tryagain-score-display').textContent = finalScore;
+            const phaseBg = document.getElementById('phase-bg');
+            phaseBg.style.background = '';
+            phaseBg.style.backgroundImage = "url('assets/thanks.png')";
             document.getElementById('step-tryagain').classList.add('active');
             return;
         }
